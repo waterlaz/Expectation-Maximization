@@ -4,15 +4,15 @@
 #include <Eigen/Dense>
 #include <cmath>
 
-template<class T, int N>
-Eigen::Matrix<double, N, 1> weightedSum(
-    const std::vector<T>& a,
-    const std::vector<Eigen::Matrix<T, N, 1> >& x)
+template<class Float, int N>
+Eigen::Matrix<Float, N, 1> weightedSum(
+    const std::vector<Float>& a,
+    const std::vector<Eigen::Matrix<Float, N, 1> >& x)
 {
     assert( a.size() == x.size() );
     int n = x[0].size();
-    Eigen::Matrix<T, N, 1> s = Eigen::Matrix<T, N, 1>::Zero(n);
-    double sa = 0.0;
+    Eigen::Matrix<Float, N, 1> s = Eigen::Matrix<Float, N, 1>::Zero(n);
+    Float sa = 0.0;
     for(int i=0; i<x.size(); i++){
         s += a[i]*x[i];
     }
@@ -20,11 +20,11 @@ Eigen::Matrix<double, N, 1> weightedSum(
 }
 
 
-template<int N>
+template<class Float, int N>
 class IndependentGaussian
-        : ProbabilityDistribution<Eigen::Matrix<double, N, 1> > {
+        : ProbabilityDistribution<Eigen::Matrix<Float, N, 1>, Float > {
 public:
-    typedef Eigen::Matrix<double, N, 1> Vector;
+    typedef Eigen::Matrix<Float, N, 1> Vector;
     const int n;
     Vector mean;
     Vector deviation;
@@ -40,20 +40,20 @@ public:
         static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
         init();
     }
-    double operator()(const Vector& x){
+    Float operator()(const Vector& x){
         assert(x.size() == 0);
-        double p = 1.0;
-        double s = 0.0;
+        Float p = 1.0;
+        Float s = 0.0;
         for(int j=0; j<n; j++){
             p *= one_two_pi/deviation(j);
             s += - (x[j]-mean[j])*(x[j]-mean[j])/2.0/deviation[j]/deviation[j];
         }
         return p*exp(s);
     }
-    void likelihoodEstimate(const std::vector<double>& a, 
+    void likelihoodEstimate(const std::vector<Float>& a, 
                             const std::vector<Vector>& x)
     {
-        double sumA = std::reduce(a.begin(), a.end());
+        Float sumA = std::reduce(a.begin(), a.end());
         if(sumA == 0.0){
             return;
         }
@@ -67,7 +67,7 @@ public:
         deviation = (s2/sumA).cwiseSqrt();
     } 
 private:
-    static constexpr double one_two_pi = 1.0/sqrt(2*M_PI);
+    static constexpr Float one_two_pi = 1.0/sqrt(2*M_PI);
     void init(){
         mean = Vector::Zero(n);
         deviation = Vector::Constant(n, 1.0);

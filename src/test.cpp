@@ -28,7 +28,7 @@ int main(){
     }
     std::vector<double> a(m, 1.0);
     
-    IndependentGaussian<Eigen::Dynamic> ig(2);
+    IndependentGaussian<double, Eigen::Dynamic> ig(2);
 
     ig.likelihoodEstimate(a, xs);
     std::cout<<"mean\n"<<ig.mean<<"\n\n";
