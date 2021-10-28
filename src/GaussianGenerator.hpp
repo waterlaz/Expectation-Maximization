@@ -3,6 +3,10 @@
 #include <Eigen/Dense>
 #include <cmath>
 
+template<class P>
+class Generator;
+
+
 //A class to generate normal distribution values of type T
 //with expected value 0.0 and variation 1.0
 template<class T>
@@ -32,13 +36,14 @@ public:
 };
 
 
-//A class to generate N-dimensional multivariate normal distributions of floating type T
-template<class T, int N>
+
+//A class to generate N-dimensional multivariate normal distributions of floating type Float
+template<class Float, int N>
 class GaussianGenerator {
 private:
-    typedef Eigen::Matrix<T, N, 1> Vec;
-    typedef Eigen::Matrix<T, N, N> Mat;
-    NormalGenerator<T> ng;
+    typedef Eigen::Matrix<Float, N, 1> Vec;
+    typedef Eigen::Matrix<Float, N, N> Mat;
+    NormalGenerator<Float> ng;
     Vec mean;
     Mat transform;
 public:
@@ -56,3 +61,24 @@ public:
     }
 
 };
+
+
+template<class Float, int N>
+class Generator<IndependentGaussian<Float, N> > {
+private:
+    typedef Eigen::Matrix<Float, N, 1> Vec;
+    typedef Eigen::Matrix<Float, N, N> Mat;
+    GaussianGenerator<Float, N> gg;
+public:
+    Generator(const IndependentGaussian<Float, N>& gaussian) :
+        gg(gaussian.deviation.cwiseAbs2().asDiagonal(), gaussian.mean){
+    }
+    Generator(const Vec& deviation, const Vec& mean) :
+        gg(deviation.cwiseAbs2().asDiagonal(), mean){
+    }
+    Vec operator()(){
+        return gg();
+    }
+};
+
+
