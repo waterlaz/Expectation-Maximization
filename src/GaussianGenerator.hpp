@@ -3,8 +3,7 @@
 #include <Eigen/Dense>
 #include <cmath>
 
-template<class P>
-class Generator;
+#include "Generator.hpp"
 
 
 //A class to generate normal distribution values of type T
@@ -41,6 +40,7 @@ public:
 template<class Float, int N>
 class GaussianGenerator {
 private:
+public:
     typedef Eigen::Matrix<Float, N, 1> Vec;
     typedef Eigen::Matrix<Float, N, N> Mat;
     NormalGenerator<Float> ng;
