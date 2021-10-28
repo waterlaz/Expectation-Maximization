@@ -3,67 +3,126 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <memory>
+//#include <cstdlib>
 
-template <class X>
+template <class X, class Float>
 class ProbabilityDistribution {
 public:
-    virtual double operator()(const X& x) = 0;
-    virtual void likelihoodEstimate(const std::vector<double>& a, const std::vector<X>& x) = 0;
+    typedef Float float_type;
+    typedef X sample_type;
+    virtual Float operator()(const X& x) const = 0;
+    virtual void likelihoodEstimate(const std::vector<Float>& a, const std::vector<X>& x) = 0;
 };
 
-template <class X>
+template <class P>
 class MixtureModel {
+private:
+    std::vector<P> variable;
 public:
-    std::vector<ProbabilityDistribution<X> > px;
-    std::vector<double> pk;
-    double operator()(const X& x){
-        double p = 0.0;
+    typedef typename P::float_type float_type;
+    typedef typename P::sample_type sample_type;
+    typedef P variable_type;
+    std::vector<float_type> prior;
+    float_type operator()(const sample_type& x) const{
+        float_type p = 0.0;
         for(unsigned int k=0; k<size(); k++){
-            p += pk[k]*px[k](x);
+            p += prior[k]*variable[k](x);
         }
         return p;
     }
-    double operator()(int k, const X& x){
-        return pk[k]*px[k](x);
+    float_type operator()(int k, const sample_type& x) const{
+        return prior[k]*variable[k](x);
     }
-    size_t size(){
-        return pk.size();
+    size_t size() const{
+        return variable.size();
+    }
+    const P& operator[](unsigned int k) const{
+        return variable[k];
+    }
+    P& operator[](unsigned int k){
+        return variable[k];
+    }
+    MixtureModel(int nClasses) : 
+        variable(nClasses),
+        prior(nClasses, 1.0/nClasses)
+    {
     }
 };
 
 
-
-template <class X>
+template <class Mixture>
 class EM {
-private:
 public:
-    MixtureModel<X>& mixture;
-    EM(MixtureModel<X>& _mixture) : mixture{_mixture}
-    {
-    }
-    //perform one Expectation-Maximization step with learning sample xs
-    void iterate(const std::vector<X>& xs){
-        std::vector<std::vector<double> > a(
-            mixture.size(), 
-            std::vector<double>(xs.size()) );
-        //Expectation:
-        for(unsigned int i=0; i<xs.size(); i++){
-            double sum_a = 0.0;
+    typedef typename Mixture::float_type float_type;
+    typedef typename Mixture::sample_type sample_type;
+private:
+    void makeSumToOne(std::vector<std::vector<float_type> >& a){
+        for(unsigned int i=0; i<a[0].size(); i++){
+            float_type sum_a = 0.0;
             for(unsigned int k=0; k<mixture.size(); k++){
-                a[k][i] = mixture(k, xs[i]);
                 sum_a += a[k][i];
             }
             if(sum_a != 0.0){
                 for(unsigned int k=0; k<mixture.size(); k++){
                     a[k][i] /= sum_a;
                 }
+            } else {
+                //Something went wrong! Make them all equal.
+                for(unsigned int k=0; k<mixture.size(); k++){
+                    a[k][i] /= 1.0/mixture.size();
+                }
             }
         }
-        //Maximization:
+    }
+public:
+    Mixture& mixture;
+    EM(Mixture& _mixture) : mixture{_mixture}
+    {
+    }
+
+    void expectation(const std::vector<sample_type>& xs,
+                     std::vector<std::vector<float_type> >& a)
+    {
         for(unsigned int k=0; k<mixture.size(); k++){
-            mixture.pk[k] = std::reduce(a[k].begin(), a[k].end()) / a[k].size();
-            mixture.px[k].likelihoodEstimate(a[k], xs);
+            for(unsigned int i=0; i<xs.size(); i++){
+                a[k][i] = mixture(k, xs[i]);
+            }
         }
+    }
+    void maximization(const std::vector<sample_type>& xs,
+                      std::vector<std::vector<float_type> >& a)
+    {
+        for(unsigned int k=0; k<mixture.size(); k++){
+            mixture.prior[k] = std::reduce(a[k].begin(), a[k].end()) / a[k].size();
+            mixture[k].likelihoodEstimate(a[k], xs);
+        }
+    }
+
+    //perform one Expectation-Maximization step with learning sample xs
+    void iterate(const std::vector<sample_type>& xs)
+    {
+        std::vector<std::vector<float_type> > a(
+            mixture.size(), 
+            std::vector<float_type>(xs.size()) );
+
+        expectation(xs, a);
+        makeSumToOne(a);
+        maximization(xs, a);
+    }
+    void init(const std::vector<sample_type>& xs){
+        std::vector<std::vector<float_type> > a(
+            mixture.size(), 
+            std::vector<float_type>(xs.size()) );
+        for(unsigned int k=0; k<mixture.size(); k++){
+            for(unsigned int i=0; i<xs.size(); i++){
+                a[k][i] = (float_type) rand()/RAND_MAX;
+            }
+        }
+
+
+        makeSumToOne(a);
+        maximization(xs, a);
     }
 };
 
