@@ -87,3 +87,4 @@ private:
         deviation = Vector::Constant(n, 1.0);
     }
 };
+

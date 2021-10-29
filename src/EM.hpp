@@ -4,18 +4,35 @@
 #include <numeric>
 #include <algorithm>
 #include <memory>
-//#include <cstdlib>
 
 template <class X, class Float>
 class ProbabilityDistribution {
 public:
     typedef Float float_type;
     typedef X sample_type;
+    /*
     virtual Float operator()(const X& x) const = 0;
     virtual void likelihoodEstimate(const std::vector<Float>& a, const std::vector<X>& x) = 0;
+    */
 };
 
+template <class C>
+concept Container = 
+    requires(C c) {
+        c.begin();
+        c.end();
+        c.begin()++;
+    };
+
+
 template <class P>
+concept HasLikelihoodEstimate =
+    requires(P p, std::vector<typename P::float_type> a, std::vector<typename P::sample_type> x) {
+        p.likelihoodEstimate(a, x);
+    };
+
+
+template <HasLikelihoodEstimate P>
 class MixtureModel {
 private:
     std::vector<P> variable;

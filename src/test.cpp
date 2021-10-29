@@ -1,6 +1,6 @@
 #include <iostream>
 #include <fstream>
-#include "GMM.hpp"
+#include "Gaussian.hpp"
 #include "GaussianGenerator.hpp"
 #include "EM.hpp"
 
