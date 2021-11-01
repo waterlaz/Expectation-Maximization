@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <list>
 #include "Gaussian.hpp"
 #include "GaussianGenerator.hpp"
 #include "EM.hpp"
@@ -16,7 +17,8 @@ int main(){
     Generator gg(gmm);
 
     int m = 1000;
-    std::vector<Eigen::Vector2d> xs(m);
+    //std::vector<Eigen::Vector2d> xs(m);
+    std::list<Eigen::Vector2d> xs(m);
     for(auto&& x:xs){
         x = gg();
     }

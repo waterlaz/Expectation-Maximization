@@ -22,6 +22,15 @@ concept Container =
         c.begin();
         c.end();
         c.begin()++;
+        c.size();
+    };
+
+template <class C, class T>
+concept ContainerOf = 
+    requires(C c) {
+        { *c.begin() } -> std::convertible_to<T>;
+        c.end();
+        c.begin()++;
     };
 
 
@@ -98,16 +107,21 @@ public:
     {
     }
 
-    void expectation(const std::vector<sample_type>& xs,
+    template <Container C>
+    requires ContainerOf<C, sample_type>
+    void expectation(const C& xs,
                      std::vector<std::vector<float_type> >& a)
     {
         for(unsigned int k=0; k<mixture.size(); k++){
-            for(unsigned int i=0; i<xs.size(); i++){
-                a[k][i] = mixture(k, xs[i]);
-            }
+            std::transform(xs.begin(), xs.end(), a[k].begin(),
+            [&] (sample_type x) -> float_type { 
+                return mixture(k, x); 
+            } );
         }
     }
-    void maximization(const std::vector<sample_type>& xs,
+    template <Container C>
+    requires ContainerOf<C, sample_type>
+    void maximization(const C& xs,
                       std::vector<std::vector<float_type> >& a)
     {
         for(unsigned int k=0; k<mixture.size(); k++){
@@ -117,7 +131,9 @@ public:
     }
 
     //perform one Expectation-Maximization step with learning sample xs
-    void iterate(const std::vector<sample_type>& xs)
+    template <Container C>
+    requires ContainerOf<C, sample_type>
+    void iterate(const C& xs)
     {
         std::vector<std::vector<float_type> > a(
             mixture.size(), 
@@ -127,16 +143,18 @@ public:
         makeSumToOne(a);
         maximization(xs, a);
     }
-    void init(const std::vector<sample_type>& xs){
+    
+    template <Container C>
+    requires ContainerOf<C, sample_type>
+    void init(const C& xs){
         std::vector<std::vector<float_type> > a(
             mixture.size(), 
             std::vector<float_type>(xs.size()) );
         for(unsigned int k=0; k<mixture.size(); k++){
-            for(unsigned int i=0; i<xs.size(); i++){
+            for(unsigned int i=0; i<a[k].size(); i++){
                 a[k][i] = (float_type) rand()/RAND_MAX;
             }
         }
-
 
         makeSumToOne(a);
         maximization(xs, a);

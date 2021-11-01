@@ -4,19 +4,17 @@
 #include <Eigen/Dense>
 #include <cmath>
 
-template<class Float, int N>
-Eigen::Matrix<Float, N, 1> weightedSum(
+template<class Float, class C>
+requires ContainerOf<C, Eigen::Matrix<Float, C::value_type::RowsAtCompileTime, 1> >
+Eigen::Matrix<Float, C::value_type::RowsAtCompileTime, 1> weightedSum(
     const std::vector<Float>& a,
-    const std::vector<Eigen::Matrix<Float, N, 1> >& x)
+    const C& x)
 {
+    typedef Eigen::Matrix<Float, C::value_type::RowsAtCompileTime, 1> Vec;
     assert( a.size() == x.size() );
-    int n = x[0].size();
-    Eigen::Matrix<Float, N, 1> s = Eigen::Matrix<Float, N, 1>::Zero(n);
-    Float sa = 0.0;
-    for(int i=0; i<x.size(); i++){
-        s += a[i]*x[i];
-    }
-    return s;
+    int n = x.begin()->size();
+    return std::transform_reduce(a.begin(), a.end(), x.begin(), 
+                                 (Vec)Vec::Zero(n));
 }
 
 
@@ -24,17 +22,17 @@ template<class Float, int N>
 class IndependentGaussian
         : public ProbabilityDistribution<Eigen::Matrix<Float, N, 1>, Float > {
 public:
-    typedef Eigen::Matrix<Float, N, 1> Vector;
+    typedef Eigen::Matrix<Float, N, 1> Vec;
     int n;
-    Vector deviation;
-    Vector mean;
+    Vec deviation;
+    Vec mean;
     IndependentGaussian(int _n) : 
         n{_n}
     {
         static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
         init();
     }
-    IndependentGaussian(int _n, const Vector& _deviation, const Vector& _mean) : 
+    IndependentGaussian(int _n, const Vec& _deviation, const Vec& _mean) : 
         n{_n},
         deviation{_deviation},
         mean{_mean}
@@ -47,14 +45,14 @@ public:
         static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
         init();
     }
-    IndependentGaussian(const Vector& _deviation, const Vector& _mean) : 
+    IndependentGaussian(const Vec& _deviation, const Vec& _mean) : 
         n{N},
         deviation{_deviation},
         mean{_mean}
     {
         static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
     }
-    Float operator()(const Vector& x) const{
+    Float operator()(const Vec& x) const{
         assert(x.size() == n);
         Float p = 1.0;
         Float s = 0.0;
@@ -64,8 +62,10 @@ public:
         }
         return p*exp(s);
     }
+    template <Container C>
+    requires ContainerOf<C, Vec>
     void likelihoodEstimate(const std::vector<Float>& a, 
-                            const std::vector<Vector>& x)
+                            const C& x)
     {
         Float sumA = std::reduce(a.begin(), a.end());
         if(sumA == 0.0){
@@ -73,18 +73,21 @@ public:
         }
         mean = weightedSum(a, x)/sumA;
         
-        Vector s2 = Vector::Zero(x[0].size());
-        for(int i=0; i<x.size(); i++){
-            s2 += a[i]*(x[i]-mean).unaryExpr([&](auto xi_m){ return xi_m*xi_m; });
-        }
+        Vec s2 = std::transform_reduce(
+            a.begin(), a.end(), x.begin(),
+            (Vec)Vec::Zero(n),
+            std::plus<>(),
+            [&](Float ai, const Vec& xi) -> Vec {
+                return ai*(xi-mean).unaryExpr([&](auto xi_m){ return xi_m*xi_m; });
+            });
 
         deviation = (s2/sumA).cwiseSqrt();
     } 
 private:
     static constexpr Float one_two_pi = 1.0/sqrt(2*M_PI);
     void init(){
-        mean = Vector::Zero(n);
-        deviation = Vector::Constant(n, 1.0);
+        mean = Vec::Zero(n);
+        deviation = Vec::Constant(n, 1.0);
     }
 };
 
