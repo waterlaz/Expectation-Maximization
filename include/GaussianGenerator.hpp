@@ -35,7 +35,6 @@ public:
 };
 
 
-
 //A class to generate N-dimensional multivariate normal distributions of floating type Float
 template<class Float, int N>
 class GaussianGenerator {
@@ -57,7 +56,7 @@ public:
     
     Vec operator()(){
         Vec normal(mean.size());
-        return mean + transform * normal.unaryExpr([&](auto x){ return ng(); });
+        return mean + transform * normal.unaryExpr([&](auto){ return ng(); });
     }
 
 };
