@@ -21,17 +21,20 @@ Eigen::Matrix<Float, C::value_type::RowsAtCompileTime, 1> weightedSum(
 template<class Float, int N>
 class IndependentGaussian
         : public ProbabilityDistribution<Eigen::Matrix<Float, N, 1>, Float > {
-public:
+private:
     typedef Eigen::Matrix<Float, N, 1> Vec;
+public:
     int n;
     Vec deviation;
     Vec mean;
+    
     IndependentGaussian(int _n) : 
         n{_n}
     {
         static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
         init();
     }
+    
     IndependentGaussian(int _n, const Vec& _deviation, const Vec& _mean) : 
         n{_n},
         deviation{_deviation},
@@ -39,12 +42,14 @@ public:
     {
         static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
     }
+    
     IndependentGaussian() : 
         n{N}
     {
         static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
         init();
     }
+    
     IndependentGaussian(const Vec& _deviation, const Vec& _mean) : 
         n{N},
         deviation{_deviation},
@@ -52,6 +57,7 @@ public:
     {
         static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
     }
+    
     Float operator()(const Vec& x) const{
         assert(x.size() == n);
         Float p = 1.0;
@@ -62,6 +68,7 @@ public:
         }
         return p*exp(s);
     }
+    
     template <Container C>
     requires ContainerOf<C, Vec>
     void likelihoodEstimate(const std::vector<Float>& a, 
