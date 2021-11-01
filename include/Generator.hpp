@@ -4,12 +4,6 @@
 #include <vector>
 #include "EM.hpp"
 
-/*
-template<class P>
-class Generator;
-*/
-
-
 template<class Mixture>
 class Generator {
 public:
@@ -30,7 +24,7 @@ public:
     sample_type operator()(){
         float_type p = (float_type) rand()/RAND_MAX;
         float_type sum = 0.0;
-        for(int k=0; k<prior.size(); k++){
+        for(unsigned int k=0; k<prior.size(); k++){
             sum += prior[k];
             if( sum>=p ){
                 return variableGenerator[k]();
