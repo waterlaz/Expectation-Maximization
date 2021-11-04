@@ -98,3 +98,109 @@ private:
     }
 };
 
+
+template<class Float, int N>
+class Gaussian
+        : public ProbabilityDistribution<Eigen::Matrix<Float, N, 1>, Float > {
+private:
+    typedef Eigen::Matrix<Float, N, 1> Vec;
+    typedef Eigen::Matrix<Float, N, N> Mat;
+    int n;
+    Mat invCovariance;
+    Vec mean;
+    Float constantFactor;
+public:
+    const Vec& getMean() const
+    {
+        return mean;
+    }
+    const Mat& getInvCovariance() const
+    {
+        return invCovariance;
+    }
+    
+    void setMean(const Vec& _mean)
+    {
+        mean = _mean;
+    }
+    void setInvCovariance(const Mat& _invCovariance)
+    {
+        invCovariance = _invCovariance;
+        constantFactor = pow(one_two_pi, n)*sqrt(invCovariance.determinant());
+    }
+    void setCovariance(const Mat& covariance)
+    {
+        //FIXME: what if there is no inverse?
+        setInvCovariance( covariance.inverse() );
+    }
+    Mat getCovariance()
+    {
+        //FIXME: what if there is no inverse?
+        return invCovariance.inverse();
+    }
+
+    Gaussian(int _n) : 
+        n{_n}
+    {
+        static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
+        init();
+    }
+    
+    Gaussian(int _n, const Mat& _invCovariance, const Vec& _mean) : 
+        n{_n}
+    {
+        static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
+        setInvCovariance(_invCovariance);
+        setMean(_mean);
+    }
+    
+    Gaussian() : 
+        n{N}
+    {
+        static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
+        init();
+    }
+    
+    Gaussian(const Mat& _invCovariance, const Vec& _mean) : 
+        n{N}
+    {
+        static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
+        setInvCovariance(_invCovariance);
+        setMean(_mean);
+    }
+    
+    Float operator()(const Vec& x) const{
+        assert(x.size() == n);
+        return constantFactor*exp(-0.5*(x-mean).dot(invCovariance*(x-mean)));
+    }
+    
+    template <Container C>
+    requires ContainerOf<C, Vec>
+    void likelihoodEstimate(const std::vector<Float>& a, 
+                            const C& x)
+    {
+        Float sumA = std::reduce(a.begin(), a.end());
+        if(sumA == 0.0){
+            return;
+        }
+        setMean( weightedSum(a, x)/sumA );
+        
+        Mat Cov = std::transform_reduce(
+            a.begin(), a.end(), x.begin(),
+            (Mat)Mat::Zero(n, n),
+            std::plus<>(),
+            [&](Float ai, const Vec& xi) -> Mat {
+                return ai*(xi-mean)*(xi-mean).transpose();
+            });
+        
+        setCovariance(Cov/sumA);
+    } 
+private:
+    static constexpr Float one_two_pi = 1.0/sqrt(2*M_PI);
+    void init(){
+        mean = Vec::Zero(n);
+        setInvCovariance( Vec::Constant(n, 1.0).asDiagonal() );
+    }
+};
+
+

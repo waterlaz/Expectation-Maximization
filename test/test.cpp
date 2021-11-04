@@ -5,6 +5,7 @@
 #include "GaussianGenerator.hpp"
 #include "EM.hpp"
 
+using namespace Eigen;
 
 int main(){
     MixtureModel<IndependentGaussian<double, 2> > gmm(2);
@@ -29,32 +30,43 @@ int main(){
         file<<x.transpose()<<"\n";
     }
     
-    MixtureModel<IndependentGaussian<double, 2> > gmm2(2);
+    MixtureModel<IndependentGaussian<double, 2> > gmm1(2);
+    EM em1(gmm1);
+    em1.init(xs);
     
-    EM em(gmm2);
-    em.init(xs);
     for(int i=0; i<100; i++){
-        em.iterate(xs);
+        em1.iterate(xs);
     }
     
+    std::cout<<"Independent Gaussian:\n";
+    std::cout<<gmm1.prior[0]<<"\n";
+    std::cout<<"Deviation: \n"<<gmm1[0].deviation<<"\n\n";
+    std::cout<<"Mean: \n"<<gmm1[0].mean<<"\n\n\n\n";
+    
+    std::cout<<gmm1.prior[1]<<"\n";
+    std::cout<<"Deviation: \n"<<gmm1[1].deviation<<"\n\n";
+    std::cout<<"Mean: \n"<<gmm1[1].mean<<"\n\n\n\n";
+    
+
+    MixtureModel<Gaussian<double, 2> > gmm2(2);
+    EM em2(gmm2);
+    em2.init(xs);
+    
+    for(int i=0; i<100; i++){
+        em2.iterate(xs);
+    }
+    
+    std::cout<<"General Gaussian:\n";
     std::cout<<gmm2.prior[0]<<"\n";
-    std::cout<<"Deviation: \n"<<gmm2[0].deviation<<"\n\n";
-    std::cout<<"Mean: \n"<<gmm2[0].mean<<"\n\n\n\n";
+    std::cout<<"Caovariance: \n"<<gmm2[0].getCovariance()<<"\n\n";
+    std::cout<<"Mean: \n"<<gmm2[0].getMean()<<"\n\n\n\n";
     
     std::cout<<gmm2.prior[1]<<"\n";
-    std::cout<<"Deviation: \n"<<gmm2[1].deviation<<"\n\n";
-    std::cout<<"Mean: \n"<<gmm2[1].mean<<"\n\n\n\n";
+    std::cout<<"Covariance: \n"<<gmm2[1].getCovariance()<<"\n\n";
+    std::cout<<"Mean: \n"<<gmm2[1].getMean()<<"\n\n\n\n";
     
-    /*
 
-    std::vector<double> a(m, 1.0);
     
-    IndependentGaussian<double, 2> ig;
-
-    ig.likelihoodEstimate(a, xs);
-    std::cout<<"mean\n"<<ig.mean<<"\n\n";
-    std::cout<<"deviation\n"<<ig.deviation<<"\n\n";
-    */
 }
 
 

@@ -37,7 +37,7 @@ public:
 
 //A class to generate N-dimensional multivariate normal distributions of floating type Float
 template<class Float, int N>
-class GaussianGenerator {
+class Generator<Gaussian<Float, N> > {
 private:
 public:
     typedef Eigen::Matrix<Float, N, 1> Vec;
@@ -46,7 +46,10 @@ public:
     Vec mean;
     Mat transform;
 public:
-    GaussianGenerator(const Mat& covar, const Vec& _mean) :
+    Generator(const Gaussian<Float, N>& gaussian) :
+        Generator(gaussian.getCovariance(), gaussian.getMean()){
+    }
+    Generator(const Mat& covar, const Vec& _mean) :
         mean{_mean} 
     {
         Eigen::SelfAdjointEigenSolver<Mat> eigenSolver(covar);
@@ -67,7 +70,7 @@ class Generator<IndependentGaussian<Float, N> > {
 private:
     typedef Eigen::Matrix<Float, N, 1> Vec;
     typedef Eigen::Matrix<Float, N, N> Mat;
-    GaussianGenerator<Float, N> gg;
+    Generator<Gaussian<Float, N> > gg;
 public:
     Generator(const IndependentGaussian<Float, N>& gaussian) :
         gg(gaussian.deviation.cwiseAbs2().asDiagonal(), gaussian.mean){
@@ -79,5 +82,4 @@ public:
         return gg();
     }
 };
-
 
