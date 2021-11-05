@@ -5,11 +5,14 @@ INCLUDE_FLAGS = -I ../include `pkg-config --cflags eigen3`
 
 HEADERS = ../include/*hpp
 
-all: test
+all: test gaussianEM_example
 
 test: test.cpp $(HEADERS)
 	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $< -o $@ 
 
+gaussianEM_example: gaussianEM_example.cpp $(HEADERS)
+	$(CXX) $(CXX_FLAGS) $(INCLUDE_FLAGS) $< -o $@ 
+
 clean:
-	rm test
+	rm test gaussianEM_example
 
