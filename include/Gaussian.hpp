@@ -24,45 +24,30 @@ class IndependentGaussian
 private:
     typedef Eigen::Matrix<Float, N, 1> Vec;
 public:
-    int n;
+    size_t n;
     Vec deviation;
     Vec mean;
     
-    IndependentGaussian(int _n) : 
+    IndependentGaussian(size_t _n = N) : 
         n{_n}
     {
-        static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
-        init();
-    }
-    
-    IndependentGaussian(int _n, const Vec& _deviation, const Vec& _mean) : 
-        n{_n},
-        deviation{_deviation},
-        mean{_mean}
-    {
-        static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
-    }
-    
-    IndependentGaussian() : 
-        n{N}
-    {
-        static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
+        assert((N==Eigen::Dynamic || n==N) && "Wrong number of dimensions");
         init();
     }
     
     IndependentGaussian(const Vec& _deviation, const Vec& _mean) : 
-        n{N},
+        n{(size_t)_deviation.size()},
         deviation{_deviation},
         mean{_mean}
     {
-        static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
+        assert((N==Eigen::Dynamic || n==N) && "Wrong number of dimensions");
     }
     
     Float operator()(const Vec& x) const{
-        assert(x.size() == n);
+        assert((size_t)x.size() == n);
         Float p = 1.0;
         Float s = 0.0;
-        for(int j=0; j<n; j++){
+        for(size_t j=0; j<n; j++){
             p *= one_two_pi/deviation(j);
             s += - (x[j]-mean[j])*(x[j]-mean[j])/2.0/deviation[j]/deviation[j];
         }
@@ -105,7 +90,7 @@ class Gaussian
 private:
     typedef Eigen::Matrix<Float, N, 1> Vec;
     typedef Eigen::Matrix<Float, N, N> Mat;
-    int n;
+    size_t n;
     Mat invCovariance;
     Vec mean;
     Float constantFactor;
@@ -139,38 +124,23 @@ public:
         return invCovariance.inverse();
     }
 
-    Gaussian(int _n) : 
+    Gaussian(size_t _n=N) : 
         n{_n}
     {
-        static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
-        init();
-    }
-    
-    Gaussian(int _n, const Mat& _invCovariance, const Vec& _mean) : 
-        n{_n}
-    {
-        static_assert(N==Eigen::Dynamic, "The constructor is only usable with dynamic number of dimensions");
-        setInvCovariance(_invCovariance);
-        setMean(_mean);
-    }
-    
-    Gaussian() : 
-        n{N}
-    {
-        static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
+        assert((N==Eigen::Dynamic || n==N) && "Wrong number of dimensions");
         init();
     }
     
     Gaussian(const Mat& _invCovariance, const Vec& _mean) : 
-        n{N}
+        n{(size_t)_mean.size()}
     {
-        static_assert(N!=Eigen::Dynamic, "The constructor is only usable with fixed number of dimensions");
+        assert((N==Eigen::Dynamic || n==N) && "Wrong number of dimensions");
         setInvCovariance(_invCovariance);
         setMean(_mean);
     }
     
     Float operator()(const Vec& x) const{
-        assert(x.size() == n);
+        assert((size_t)x.size() == n);
         return constantFactor*exp(-0.5*(x-mean).dot(invCovariance*(x-mean)));
     }
     
