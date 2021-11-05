@@ -17,14 +17,14 @@ public:
     Generator(const Mixture& mixture) :
         prior{mixture.prior}
     {
-        for(unsigned int k=0; k<mixture.size(); k++){
+        for(size_t k=0; k<mixture.size(); k++){
             variableGenerator.emplace_back( Generator<variable_type>(mixture[k]) );
         }
     }
     sample_type operator()(){
         float_type p = (float_type) rand()/RAND_MAX;
         float_type sum = 0.0;
-        for(unsigned int k=0; k<prior.size(); k++){
+        for(size_t k=0; k<prior.size(); k++){
             sum += prior[k];
             if( sum>=p ){
                 return variableGenerator[k]();

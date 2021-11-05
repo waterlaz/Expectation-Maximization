@@ -52,7 +52,7 @@ public:
     std::vector<float_type> prior;
     float_type operator()(const sample_type& x) const{
         float_type p = 0.0;
-        for(unsigned int k=0; k<size(); k++){
+        for(size_t k=0; k<size(); k++){
             p += prior[k]*variable[k](x);
         }
         return p;
@@ -63,10 +63,10 @@ public:
     size_t size() const{
         return variable.size();
     }
-    const P& operator[](unsigned int k) const{
+    const P& operator[](size_t k) const{
         return variable[k];
     }
-    P& operator[](unsigned int k){
+    P& operator[](size_t k){
         return variable[k];
     }
     MixtureModel(int nClasses) : 
@@ -84,18 +84,18 @@ public:
     typedef typename Mixture::sample_type sample_type;
 private:
     void makeSumToOne(std::vector<std::vector<float_type> >& a){
-        for(unsigned int i=0; i<a[0].size(); i++){
+        for(size_t i=0; i<a[0].size(); i++){
             float_type sum_a = 0.0;
-            for(unsigned int k=0; k<mixture.size(); k++){
+            for(size_t k=0; k<mixture.size(); k++){
                 sum_a += a[k][i];
             }
             if(sum_a != 0.0){
-                for(unsigned int k=0; k<mixture.size(); k++){
+                for(size_t k=0; k<mixture.size(); k++){
                     a[k][i] /= sum_a;
                 }
             } else {
                 //Something went wrong! Make them all equal.
-                for(unsigned int k=0; k<mixture.size(); k++){
+                for(size_t k=0; k<mixture.size(); k++){
                     a[k][i] /= 1.0/mixture.size();
                 }
             }
@@ -112,7 +112,7 @@ public:
     void expectation(const C& xs,
                      std::vector<std::vector<float_type> >& a)
     {
-        for(unsigned int k=0; k<mixture.size(); k++){
+        for(size_t k=0; k<mixture.size(); k++){
             std::transform(xs.begin(), xs.end(), a[k].begin(),
             [&] (sample_type x) -> float_type { 
                 return mixture(k, x); 
@@ -124,7 +124,7 @@ public:
     void maximization(const C& xs,
                       std::vector<std::vector<float_type> >& a)
     {
-        for(unsigned int k=0; k<mixture.size(); k++){
+        for(size_t k=0; k<mixture.size(); k++){
             mixture.prior[k] = std::reduce(a[k].begin(), a[k].end()) / a[k].size();
             mixture[k].likelihoodEstimate(a[k], xs);
         }
@@ -150,8 +150,8 @@ public:
         std::vector<std::vector<float_type> > a(
             mixture.size(), 
             std::vector<float_type>(xs.size()) );
-        for(unsigned int k=0; k<mixture.size(); k++){
-            for(unsigned int i=0; i<a[k].size(); i++){
+        for(size_t k=0; k<mixture.size(); k++){
+            for(size_t i=0; i<a[k].size(); i++){
                 a[k][i] = (float_type) rand()/RAND_MAX;
             }
         }
