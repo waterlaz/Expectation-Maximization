@@ -68,12 +68,12 @@ int main(){
     
     std::cout<<"General Gaussian:\n";
     std::cout<<"Class1 prior probability:  "<<learnedGeneralGaussianMixture.prior[0]<<"\n";
-    std::cout<<"Caovariance: \n"<<learnedGeneralGaussianMixture[0].getCovariance()<<"\n\n";
-    std::cout<<"Mean: \n"<<learnedGeneralGaussianMixture[0].getMean()<<"\n\n\n";
+    std::cout<<"Caovariance: \n"<<learnedGeneralGaussianMixture[0].invCovariance.inverse()<<"\n\n";
+    std::cout<<"Mean: \n"<<learnedGeneralGaussianMixture[0].mean<<"\n\n\n";
     
     std::cout<<"Class2 prior probability:  "<<learnedGeneralGaussianMixture.prior[1]<<"\n";
-    std::cout<<"Covariance: \n"<<learnedGeneralGaussianMixture[1].getCovariance()<<"\n\n";
-    std::cout<<"Mean: \n"<<learnedGeneralGaussianMixture[1].getMean()<<"\n\n\n\n";
+    std::cout<<"Covariance: \n"<<learnedGeneralGaussianMixture[1].invCovariance.inverse()<<"\n\n";
+    std::cout<<"Mean: \n"<<learnedGeneralGaussianMixture[1].mean<<"\n\n\n\n";
     
 
     

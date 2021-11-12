@@ -47,7 +47,7 @@ public:
     Mat transform;
 public:
     Generator(const Gaussian<Float, N>& gaussian) :
-        Generator(gaussian.getCovariance(), gaussian.getMean()){
+        Generator(gaussian.invCovariance.inverse(), gaussian.mean){
     }
     Generator(const Mat& covar, const Vec& _mean) :
         mean{_mean} 

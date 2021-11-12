@@ -91,57 +91,41 @@ private:
     typedef Eigen::Matrix<Float, N, 1> Vec;
     typedef Eigen::Matrix<Float, N, N> Mat;
     size_t n;
-    Mat invCovariance;
-    Vec mean;
-    Float constantFactor;
 public:
-    const Vec& getMean() const
-    {
-        return mean;
-    }
-    const Mat& getInvCovariance() const
-    {
-        return invCovariance;
-    }
-    
-    void setMean(const Vec& _mean)
-    {
-        mean = _mean;
-    }
-    void setInvCovariance(const Mat& _invCovariance)
-    {
-        invCovariance = _invCovariance;
-        constantFactor = pow(one_two_pi, n)*sqrt(invCovariance.determinant());
-    }
-    void setCovariance(const Mat& covariance)
-    {
-        //FIXME: what if there is no inverse?
-        setInvCovariance( covariance.inverse() );
-    }
-    Mat getCovariance()
-    {
-        //FIXME: what if there is no inverse?
-        return invCovariance.inverse();
-    }
+    Vec mean;
+    class : public Mat{
+    public:
+        Float constantFactor{ calculateConstantFactor() };
+        void operator=(const Mat& _invCovariance){
+            assert(_invCovariance.rows() == _invCovariance.cols() && "The inverse covariance matrix must be square");
+            Mat::operator=(_invCovariance);
+            constantFactor = calculateConstantFactor();
+        }
+    private:
+        Float calculateConstantFactor(){
+            return pow(one_two_pi, this->rows())*sqrt(this->determinant());
+        }
+    } invCovariance;
 
     Gaussian(size_t _n=N) : 
-        n{_n}
+        n{_n},
+        mean{ Vec::Zero(n) },
+        invCovariance{ Vec::Constant(n, 1.0).asDiagonal() }
     {
         assert((N==Eigen::Dynamic || n==N) && "Wrong number of dimensions");
-        init();
     }
     
     Gaussian(const Mat& _invCovariance, const Vec& _mean) : 
-        n{(size_t)_mean.size()}
+        n{(size_t)_mean.size()},
+        mean{_mean},
+        invCovariance{_invCovariance}
     {
         assert((N==Eigen::Dynamic || n==N) && "Wrong number of dimensions");
-        setInvCovariance(_invCovariance);
-        setMean(_mean);
     }
     
     Float operator()(const Vec& x) const{
         assert((size_t)x.size() == n);
-        return constantFactor*exp(-0.5*(x-mean).dot(invCovariance*(x-mean)));
+        return invCovariance.constantFactor * exp(-0.5*(x-mean).dot(invCovariance*(x-mean)));
     }
     
     template <Container C>
@@ -153,7 +137,7 @@ public:
         if(sumA == 0.0){
             return;
         }
-        setMean( weightedSum(a, x)/sumA );
+        mean = weightedSum(a, x)/sumA;
         
         Mat Cov = std::transform_reduce(
             a.begin(), a.end(), x.begin(),
@@ -162,15 +146,11 @@ public:
             [&](Float ai, const Vec& xi) -> Mat {
                 return ai*(xi-mean)*(xi-mean).transpose();
             });
-        
-        setCovariance(Cov/sumA);
+        //FIXME: what if there is no inverse?
+        invCovariance = (Cov/sumA).inverse();
     } 
 private:
     static constexpr Float one_two_pi = 1.0/sqrt(2*M_PI);
-    void init(){
-        mean = Vec::Zero(n);
-        setInvCovariance( Vec::Constant(n, 1.0).asDiagonal() );
-    }
 };
 
 
