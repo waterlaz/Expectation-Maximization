@@ -40,8 +40,14 @@ concept HasLikelihoodEstimate =
         p.likelihoodEstimate(a, x);
     };
 
+template <class P>
+concept HasProbability = 
+    requires(P p, typename P::float_type a, typename P::sample_type x) {
+        a = p(x);
+    };
 
-template <HasLikelihoodEstimate P>
+
+template <HasLikelihoodEstimate P> requires HasProbability<P> 
 class MixtureModel {
 private:
     std::vector<P> variable;
