@@ -46,6 +46,22 @@ concept HasProbability =
         a = p(x);
     };
 
+template <HasProbability P>
+class KnownDistribution {
+public:
+    P distribution;
+    KnownDistribution() {
+    }
+    KnownDistribution(const P& _distribution): distribution{_distribution} {
+    }
+    typename P::float_type operator()(const typename P::sample_type& x){
+        return distribution(x);
+    }
+    void likelihoodEstimate(const std::vector<typename P::float_type>& , std::vector<typename P::sample_type>&){
+    }
+};
+
+
 
 template <HasLikelihoodEstimate P> requires HasProbability<P> 
 class MixtureModel {
