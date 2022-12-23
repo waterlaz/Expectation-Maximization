@@ -4,17 +4,8 @@
 #include <numeric>
 #include <algorithm>
 #include <memory>
+#include <cassert>
 
-template <class X, class Float>
-class ProbabilityDistribution {
-public:
-    typedef Float float_type;
-    typedef X sample_type;
-    /*
-    virtual Float operator()(const X& x) const = 0;
-    virtual void likelihoodEstimate(const std::vector<Float>& a, const std::vector<X>& x) = 0;
-    */
-};
 
 template <class C>
 concept Container = 
@@ -33,21 +24,29 @@ concept ContainerOf =
         c.begin()++;
     };
 
-
-template <class P>
-concept HasLikelihoodEstimate =
-    requires(P p, std::vector<typename P::float_type> a, std::vector<typename P::sample_type> x) {
-        p.likelihoodEstimate(a, x);
-    };
-
 template <class P>
 concept HasProbability = 
     requires(P p, typename P::float_type a, typename P::sample_type x) {
         a = p(x);
     };
 
+template <class P>
+concept HasLikelihoodEstimate = HasProbability<P> &&
+    requires(P p, std::vector<typename P::float_type> a, std::vector<typename P::sample_type> x) {
+        p.likelihoodEstimate(a, x);
+    };
+
+
+template <class X, class Float>
+class ProbabilityDistribution {
+public:
+    typedef Float float_type;
+    typedef X sample_type;
+};
+
 template <HasProbability P>
-class KnownDistribution {
+class KnownDistribution
+        : public ProbabilityDistribution<typename P::sample_type, typename P::float_type> {
 public:
     P distribution;
     KnownDistribution() {
@@ -57,13 +56,86 @@ public:
     typename P::float_type operator()(const typename P::sample_type& x){
         return distribution(x);
     }
-    void likelihoodEstimate(const std::vector<typename P::float_type>& , std::vector<typename P::sample_type>&){
+    
+    template <Container C>
+    requires ContainerOf<C, typename P::sample_type>
+    void likelihoodEstimate(const std::vector<typename P::float_type>& , C&){
+    }
+};
+
+template <class X, class Float>
+class VirtualProbabilityDistribution : public ProbabilityDistribution<X, Float> {
+public:
+    virtual Float operator()(const X& x){
+        assert(0 && "Have you not set a probabilitydistribution class? ");
+    }
+    virtual void likelihoodEstimate(const std::vector<Float>& a, const std::vector<X>& x){
+        assert(0 && "Have you not set a probabilitydistribution class? ");
+    }
+};
+
+
+template <HasLikelihoodEstimate P>
+class WrappedProbabilityDistribution 
+        : public VirtualProbabilityDistribution<typename P::sample_type, typename P::float_type> {
+private:
+    P& distribution;
+public:
+    virtual typename P::float_type operator()(const typename P::sample_type& x){
+        return distribution.operator()(x);
+    }
+    virtual void likelihoodEstimate(const std::vector<typename P::float_type>& a, std::vector<typename P::sample_type>& x){
+        distribution.likelihoodEstimate(a, x);
+    }
+    WrappedProbabilityDistribution(P& _distribution) : distribution{_distribution}
+    {
+        std::cout<<"Constructed!\n";
     }
 };
 
 
 
-template <HasLikelihoodEstimate P> requires HasProbability<P> 
+
+template <class X, class Float>
+class GeneralMixtureModel {
+private:
+    typedef VirtualProbabilityDistribution<X, Float> P;
+    std::vector<std::unique_ptr<P> > variable;
+public:
+    typedef Float float_type;
+    typedef X sample_type;
+    std::vector<float_type> prior;
+    float_type operator()(const sample_type& x) const{
+        float_type p = 0.0;
+        for(size_t k=0; k<size(); k++){
+            p += prior[k]*variable[k]->operator()(x);
+        }
+        return p;
+    }
+    float_type operator()(int k, const sample_type& x) const{
+        return prior[k]*variable[k]->operator()(x);
+    }
+    size_t size() const{
+        return variable.size();
+    }
+    const P& operator[](size_t k) const{
+        return *variable[k];
+    }
+    P& operator[](size_t k){
+        return *variable[k];
+    }
+    template<typename T>
+    void set(size_t k, T& distribution){
+        variable[k] = std::make_unique<WrappedProbabilityDistribution<T> >(distribution);
+    }
+    GeneralMixtureModel(size_t nClasses) : 
+        variable(nClasses),
+        prior(nClasses, 1.0/nClasses)
+    {
+    }
+};
+
+template <HasLikelihoodEstimate P>
 class MixtureModel {
 private:
     std::vector<P> variable;
