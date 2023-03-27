@@ -7,6 +7,7 @@
 using namespace Eigen;
 
 int main(){
+    // test covariance
     Matrix2d C;
     C<<2.0, 0.0,
        0.0, 0.0001;
